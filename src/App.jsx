@@ -1,15 +1,40 @@
 import Webcam from "react-webcam";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import "./App.css";
 
 export default function App() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
+  const videoRef = useRef(null);
 
   const [countdown, setCountdown] = useState(null);
   const [finalImage, setFinalImage] = useState(null);
   const [webcamKey, setWebcamKey] = useState(0);
   const [webcamReady, setWebcamReady] = useState(false);
+
+  // Initialize video to paused at 0 seconds
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      const handleLoadedMetadata = () => {
+        video.pause();
+        video.currentTime = 0;
+      };
+
+      if (video.readyState >= 1) {
+        // Video metadata already loaded
+        video.pause();
+        video.currentTime = 0;
+      } else {
+        // Wait for metadata to load
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      }
+
+      return () => {
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      };
+    }
+  }, []);
 
   const start = () => {
     // Check if webcam is ready before starting countdown
@@ -18,7 +43,15 @@ export default function App() {
       return;
     }
 
-    let i = 3;
+    // Start video playback
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch((error) => {
+        console.error("Error playing video:", error);
+      });
+    }
+
+    let i = 6;
     setCountdown(i);
 
     const timer = setInterval(() => {
@@ -82,6 +115,12 @@ export default function App() {
         ctx.drawImage(celebImg, xPos, yPos, famousSize, famousSize);
 
         setFinalImage(canvas.toDataURL("image/png"));
+
+        // Pause video and reset to 0 after capturing
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+        }
       }
     };
 
@@ -111,6 +150,12 @@ export default function App() {
     setCountdown(null);
     setWebcamReady(false);
     setWebcamKey((prev) => prev + 1);
+
+    // Reset video to paused at 0 seconds
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
   };
 
   const downloadImage = () => {
@@ -121,13 +166,19 @@ export default function App() {
     link.download = "virtual-selfie.png";
     link.href = finalImage;
     link.click();
+
+    // Reset video to paused at 0 seconds after download
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
   };
 
   return (
     <div className="kiosk">
       <video
+        ref={videoRef}
         src="/celebrity_video.mp4"
-        autoPlay
         loop
         muted
         className="bg-video"

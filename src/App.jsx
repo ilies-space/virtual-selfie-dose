@@ -8,8 +8,16 @@ export default function App() {
 
   const [countdown, setCountdown] = useState(null);
   const [finalImage, setFinalImage] = useState(null);
+  const [webcamKey, setWebcamKey] = useState(0);
+  const [webcamReady, setWebcamReady] = useState(false);
 
   const start = () => {
+    // Check if webcam is ready before starting countdown
+    if (!webcamReady || !webcamRef.current || !webcamRef.current.getScreenshot) {
+      console.error("Webcam not ready, please wait...");
+      return;
+    }
+
     let i = 3;
     setCountdown(i);
 
@@ -19,22 +27,42 @@ export default function App() {
 
       if (i === 0) {
         clearInterval(timer);
-        capture();
         setCountdown(null);
+        // Small delay to ensure countdown is cleared before capture
+        setTimeout(() => {
+          capture();
+        }, 100);
       }
     }, 1000);
   };
 
   const capture = () => {
+    // Check if webcam is ready
+    if (!webcamRef.current || !webcamRef.current.getScreenshot) {
+      console.error("Webcam not ready");
+      return;
+    }
+
+    const screenshot = webcamRef.current.getScreenshot();
+    if (!screenshot) {
+      console.error("Failed to get screenshot");
+      return;
+    }
+
     const fanImg = new Image();
-    fanImg.src = webcamRef.current.getScreenshot();
+    fanImg.src = screenshot;
 
     const celebImg = new Image();
     celebImg.src = "/celebrity_selfie.png";
 
-    fanImg.onload = () => {
-      celebImg.onload = () => {
+    let fanLoaded = false;
+    let celebLoaded = false;
+
+    const tryDraw = () => {
+      if (fanLoaded && celebLoaded) {
         const canvas = canvasRef.current;
+        if (!canvas) return;
+
         const ctx = canvas.getContext("2d");
 
         // Square canvas - 1080 x 1080 pixels
@@ -54,12 +82,35 @@ export default function App() {
         ctx.drawImage(celebImg, xPos, yPos, famousSize, famousSize);
 
         setFinalImage(canvas.toDataURL("image/png"));
-      };
+      }
     };
+
+    fanImg.onload = () => {
+      fanLoaded = true;
+      tryDraw();
+    };
+
+    celebImg.onload = () => {
+      celebLoaded = true;
+      tryDraw();
+    };
+
+    // Handle case where images are already cached
+    if (fanImg.complete) {
+      fanLoaded = true;
+      tryDraw();
+    }
+    if (celebImg.complete) {
+      celebLoaded = true;
+      tryDraw();
+    }
   };
 
   const reset = () => {
     setFinalImage(null);
+    setCountdown(null);
+    setWebcamReady(false);
+    setWebcamKey((prev) => prev + 1);
   };
 
   const downloadImage = () => {
@@ -84,9 +135,17 @@ export default function App() {
 
       {!finalImage && (
         <Webcam
+          key={webcamKey}
           ref={webcamRef}
           screenshotFormat="image/png"
           className="webcam"
+          onUserMedia={() => {
+            setWebcamReady(true);
+          }}
+          onUserMediaError={(error) => {
+            console.error("Webcam error:", error);
+            setWebcamReady(false);
+          }}
         />
       )}
 

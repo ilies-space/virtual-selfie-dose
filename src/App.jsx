@@ -76,11 +76,28 @@ export default function App() {
       return;
     }
 
-    const screenshot = webcamRef.current.getScreenshot();
-    if (!screenshot) {
-      console.error("Failed to get screenshot");
+    // Get high quality screenshot - use the video element directly for better quality
+    const video = webcamRef.current.video;
+    if (!video) {
+      console.error("Video element not available");
       return;
     }
+
+    // Create a temporary canvas to capture from video at full resolution
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = video.videoWidth || 1920;
+    tempCanvas.height = video.videoHeight || 1080;
+    const tempCtx = tempCanvas.getContext("2d");
+    
+    // Use imageSmoothingEnabled for better quality
+    tempCtx.imageSmoothingEnabled = true;
+    tempCtx.imageSmoothingQuality = "high";
+    
+    // Draw video frame to temp canvas at full resolution
+    tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Get high quality screenshot from temp canvas
+    const screenshot = tempCanvas.toDataURL("image/png");
 
     const fanImg = new Image();
     fanImg.src = screenshot;
@@ -98,14 +115,18 @@ export default function App() {
 
         const ctx = canvas.getContext("2d");
 
-        // Square canvas - 1080 x 1080 pixels
-        canvas.width = 1080;
-        canvas.height = 1080;
+        // Enable high quality image smoothing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        // Higher resolution canvas for better quality - 2160 x 2160 pixels (2x for retina)
+        canvas.width = 2160;
+        canvas.height = 2160;
 
         // Calculate size for famous image (45% for more realistic appearance)
-        const famousSize = Math.floor(canvas.width * 0.60); // ~486 pixels
+        const famousSize = Math.floor(canvas.width * 0.60);
 
-        // Draw fan image first (layer 2 - bottom/back)
+        // Draw fan image first (layer 2 - bottom/back) at high quality
         ctx.drawImage(fanImg, 0, 0, canvas.width, canvas.height);
 
         // Draw celebrity selfie in bottom right corner (layer 1 - top/front)
@@ -114,6 +135,7 @@ export default function App() {
         const yPos = canvas.height - famousSize;
         ctx.drawImage(celebImg, xPos, yPos, famousSize, famousSize);
 
+        // Use PNG format for highest quality (no compression)
         setFinalImage(canvas.toDataURL("image/png"));
 
         // Pause video and reset to 0 after capturing
@@ -190,6 +212,11 @@ export default function App() {
           ref={webcamRef}
           screenshotFormat="image/png"
           className="webcam"
+          videoConstraints={{
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            facingMode: "user"
+          }}
           onUserMedia={() => {
             setWebcamReady(true);
           }}

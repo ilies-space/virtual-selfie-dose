@@ -106,21 +106,59 @@ export default function App() {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
 
-        // Higher resolution canvas for better quality - 2160 x 2160 pixels (2x for retina)
-        canvas.width = 2160;
-        canvas.height = 2160;
+        // Match canvas resolution to celebrity image for realism
+        // Use celebrity image dimensions as base resolution
+        const celebWidth = celebImg.naturalWidth || celebImg.width;
+        const celebHeight = celebImg.naturalHeight || celebImg.height;
+        const baseSize = Math.max(celebWidth, celebHeight, 1080);
 
-        // Calculate size for famous image (45% for more realistic appearance)
-        const famousSize = Math.floor(canvas.width * 0.60);
+        canvas.width = baseSize;
+        canvas.height = baseSize;
+        console.log('[DEBUG] Canvas size matched to celebrity:', canvas.width, 'x', canvas.height);
+        console.log('[DEBUG] Celebrity natural size:', celebWidth, 'x', celebHeight);
 
-        // Draw fan image first (layer 2 - bottom/back) at high quality
-        ctx.drawImage(fanImg, 0, 0, canvas.width, canvas.height);
+        // Calculate celebrity size - maintain aspect ratio
+        const celebAspectRatio = celebWidth / celebHeight;
+        const celebrityDisplaySize = Math.floor(canvas.width * 0.60);
+        const celebrityWidth = celebrityDisplaySize;
+        const celebrityHeight = Math.floor(celebrityDisplaySize / celebAspectRatio);
+        console.log('[DEBUG] Celebrity display size:', celebrityWidth, 'x', celebrityHeight);
+
+        // Scale user image to match resolution while maintaining aspect ratio
+        const userWidth = fanImg.naturalWidth || fanImg.width;
+        const userHeight = fanImg.naturalHeight || fanImg.height;
+        const userAspectRatio = userWidth / userHeight;
+        console.log('[DEBUG] User image natural size:', userWidth, 'x', userHeight);
+
+        let userDisplayWidth, userDisplayHeight;
+
+        // Scale to fill canvas while maintaining aspect ratio
+        if (userAspectRatio > 1) {
+          // User image is wider - fit to height
+          userDisplayHeight = canvas.height;
+          userDisplayWidth = canvas.height * userAspectRatio;
+        } else {
+          // User image is taller - fit to width
+          userDisplayWidth = canvas.width;
+          userDisplayHeight = canvas.width / userAspectRatio;
+        }
+
+        // Center the user image
+        const userX = (canvas.width - userDisplayWidth) / 2;
+        const userY = (canvas.height - userDisplayHeight) / 2;
+
+        console.log('[DEBUG] User image scaled to:', userDisplayWidth, 'x', userDisplayHeight);
+        console.log('[DEBUG] User image centered at:', userX, userY);
+
+        // Draw user image first (layer 2 - bottom/back) maintaining aspect ratio
+        ctx.drawImage(fanImg, userX, userY, userDisplayWidth, userDisplayHeight);
 
         // Draw celebrity selfie in bottom right corner (layer 1 - top/front)
-        // Position: bottom right corner
-        const xPos = canvas.width - famousSize;
-        const yPos = canvas.height - famousSize;
-        ctx.drawImage(celebImg, xPos, yPos, famousSize, famousSize);
+        // Position: bottom right corner, maintaining aspect ratio
+        const xPos = canvas.width - celebrityWidth;
+        const yPos = canvas.height - celebrityHeight;
+        console.log('[DEBUG] Celebrity position:', xPos, yPos);
+        ctx.drawImage(celebImg, xPos, yPos, celebrityWidth, celebrityHeight);
 
         // Use PNG format for highest quality (no compression)
         setFinalImage(canvas.toDataURL("image/png"));

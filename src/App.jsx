@@ -50,8 +50,10 @@ export default function App() {
       });
     }
 
-    // Capture immediately
-    capture();
+    // Wait 5.5 seconds before capturing
+    setTimeout(() => {
+      capture();
+    }, 5500);
   };
 
   const capture = () => {
@@ -73,14 +75,14 @@ export default function App() {
     tempCanvas.width = video.videoWidth || 1920;
     tempCanvas.height = video.videoHeight || 1080;
     const tempCtx = tempCanvas.getContext("2d");
-    
+
     // Use imageSmoothingEnabled for better quality
     tempCtx.imageSmoothingEnabled = true;
     tempCtx.imageSmoothingQuality = "high";
-    
+
     // Draw video frame to temp canvas at full resolution
     tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-    
+
     // Get high quality screenshot from temp canvas
     const screenshot = tempCanvas.toDataURL("image/png");
 
@@ -191,24 +193,31 @@ export default function App() {
       />
 
       {!finalImage && (
-        <Webcam
-          key={webcamKey}
-          ref={webcamRef}
-          screenshotFormat="image/png"
-          className="webcam"
-          videoConstraints={{
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            facingMode: "user"
-          }}
-          onUserMedia={() => {
-            setWebcamReady(true);
-          }}
-          onUserMediaError={(error) => {
-            console.error("Webcam error:", error);
-            setWebcamReady(false);
-          }}
-        />
+        <div className="webcam-container">
+          <Webcam
+            key={webcamKey}
+            ref={webcamRef}
+            screenshotFormat="image/png"
+            className="webcam"
+            videoConstraints={{
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              facingMode: "user"
+            }}
+            onUserMedia={() => {
+              setWebcamReady(true);
+            }}
+            onUserMediaError={(error) => {
+              console.error("Webcam error:", error);
+              setWebcamReady(false);
+            }}
+          />
+          <div className="safe-zone-overlay">
+            <div className="safe-zone-box">
+              <div className="safe-zone-text">KEEP IT SAFE</div>
+            </div>
+          </div>
+        </div>
       )}
 
       {!finalImage && (

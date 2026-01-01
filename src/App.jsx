@@ -7,7 +7,6 @@ export default function App() {
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
 
-  const [countdown, setCountdown] = useState(null);
   const [finalImage, setFinalImage] = useState(null);
   const [webcamKey, setWebcamKey] = useState(0);
   const [webcamReady, setWebcamReady] = useState(false);
@@ -37,7 +36,7 @@ export default function App() {
   }, []);
 
   const start = () => {
-    // Check if webcam is ready before starting countdown
+    // Check if webcam is ready
     if (!webcamReady || !webcamRef.current || !webcamRef.current.getScreenshot) {
       console.error("Webcam not ready, please wait...");
       return;
@@ -51,22 +50,8 @@ export default function App() {
       });
     }
 
-    let i = 6;
-    setCountdown(i);
-
-    const timer = setInterval(() => {
-      i--;
-      setCountdown(i);
-
-      if (i === 0) {
-        clearInterval(timer);
-        setCountdown(null);
-        // Small delay to ensure countdown is cleared before capture
-        setTimeout(() => {
-          capture();
-        }, 100);
-      }
-    }, 1000);
+    // Capture immediately
+    capture();
   };
 
   const capture = () => {
@@ -169,7 +154,6 @@ export default function App() {
 
   const reset = () => {
     setFinalImage(null);
-    setCountdown(null);
     setWebcamReady(false);
     setWebcamKey((prev) => prev + 1);
 
@@ -226,8 +210,6 @@ export default function App() {
           }}
         />
       )}
-
-      {countdown && <div className="countdown">{countdown}</div>}
 
       {!finalImage && (
         <button className="start-btn" onClick={start}>
